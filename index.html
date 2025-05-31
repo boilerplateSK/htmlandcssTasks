@@ -259,6 +259,7 @@
             <button class="filter-btn" onclick="filterTasks('phase-2')">Phase 2: Styling</button>
             <button class="filter-btn" onclick="filterTasks('phase-3')">Phase 3: Polish</button>
             <input type="text" class="search-box" placeholder="🔍 Search tasks..." oninput="searchTasks(this.value)">
+            <button class="filter-btn" onclick="clearProgress()" style="background: #e74c3c; margin-left: auto;">🗑️ Clear Progress</button>
         </div>
 
         <div class="table-container">
@@ -358,7 +359,51 @@
         function toggleTask(taskId) {
             const task = tasks.find(t => t.id === taskId);
             task.status = task.status === 'completed' ? 'pending' : 'completed';
+            saveProgress();
             renderTasks();
+        }
+
+        function saveProgress() {
+            const completedTasks = tasks.filter(t => t.status === 'completed').map(t => t.id);
+            const progressData = {
+                completedTaskIds: completedTasks,
+                lastUpdated: new Date().toISOString()
+            };
+            // Save to browser's local storage
+            try {
+                localStorage.setItem('portfolioProgress', JSON.stringify(progressData));
+            } catch (e) {
+                console.warn('Could not save progress to localStorage:', e);
+            }
+        }
+
+        function loadProgress() {
+            try {
+                const saved = localStorage.getItem('portfolioProgress');
+                if (saved) {
+                    const progressData = JSON.parse(saved);
+                    const completedIds = progressData.completedTaskIds || [];
+                    
+                    // Update task statuses based on saved data
+                    tasks.forEach(task => {
+                        task.status = completedIds.includes(task.id) ? 'completed' : 'pending';
+                    });
+                    
+                    console.log(`Loaded progress: ${completedIds.length} completed tasks`);
+                    return true;
+                }
+            } catch (e) {
+                console.warn('Could not load progress from localStorage:', e);
+            }
+            return false;
+        }
+
+        function clearProgress() {
+            if (confirm('Are you sure you want to clear all progress? This cannot be undone.')) {
+                tasks.forEach(task => task.status = 'pending');
+                localStorage.removeItem('portfolioProgress');
+                renderTasks();
+            }
         }
 
         function filterTasks(filter) {
@@ -394,6 +439,7 @@
         }
 
         // Initialize
+        loadProgress(); // Load saved progress first
         renderTasks();
     </script>
 </body>
